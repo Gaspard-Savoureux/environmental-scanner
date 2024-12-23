@@ -55,10 +55,10 @@ async fn main() {
         });
 
         // Closing UI, but will eventually open a menu
-        if is_key_pressed(KeyCode::Escape) {
+        if is_key_pressed(KeyCode::Q) {
             break;
         }
-        apply_input(&MOVING_STEP, &mut pitch, &mut yaw);
+        apply_input(&MOVING_STEP, &mut pitch, &mut yaw, &mut settings);
 
         draw_grid(20, 1., text_color, GRAY);
         draw_grid(

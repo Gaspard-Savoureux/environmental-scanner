@@ -54,6 +54,22 @@ impl Settings {
     pub fn toggle_display(&mut self) {
         self.display = !self.display;
     }
+
+    pub fn switch_theme(&mut self) {
+        self.dark_theme = !self.dark_theme;
+    }
+
+    pub fn toggle_debug(&mut self) {
+        self.debug = !self.debug;
+    }
+
+    pub fn increase_grid_size(&mut self) {
+        self.grid.slices += 1.;
+    }
+
+    pub fn decrease_grid_size(&mut self) {
+        self.grid.slices -= 1.;
+    }
 }
 
 pub struct SettingsBuilder {
@@ -146,6 +162,7 @@ pub fn show_settings(settings: &mut Settings) {
                 "Close",
             ) {
                 settings.toggle_display();
+                ui.close_current_window();
             }
         });
 }
