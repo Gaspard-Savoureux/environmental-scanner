@@ -1,6 +1,8 @@
 use key_mapping::apply_input;
-use macroquad::prelude::*;
+use macroquad::{prelude::*, ui::root_ui};
+use ui::{show_debug_info, show_settings, Settings};
 mod key_mapping;
+mod ui;
 
 const MOVING_STEP: f32 = 0.1;
 const TARGET: Vec3 = vec3(0., 0., 0.);
@@ -26,12 +28,18 @@ async fn main() {
         }
     }
 
-    // Just to show that `vec` is populated:
-    println!("vec length: {}", vec.len());
-    println!("First element: {:?}", vec[0]);
+    let mut settings = Settings::builder().build();
+    let mut text_color: Color;
 
     loop {
-        clear_background(LIGHTGRAY);
+        if settings.dark_theme {
+            clear_background(BLACK);
+            text_color = WHITE;
+        } else {
+            clear_background(LIGHTGRAY);
+            text_color = BLACK;
+        }
+        // clear_background(LIGHTGRAY);
 
         let x = TARGET.x + radius * yaw.cos() * pitch.cos();
         let y = TARGET.y + radius * pitch.sin();
@@ -52,16 +60,13 @@ async fn main() {
         }
         apply_input(&MOVING_STEP, &mut pitch, &mut yaw);
 
-        draw_grid(20, 1., BLACK, GRAY);
-
-        // draw_cube_wires(vec3(0., 1., -6.), vec3(2., 2., 2.), DARKGREEN);
-        // draw_cube_wires(vec3(0., 1., 6.), vec3(2., 2., 2.), DARKBLUE);
-        // draw_cube_wires(vec3(2., 1., 2.), vec3(2., 2., 2.), YELLOW);
-
-        // draw_cube(vec3(0., 0., 0.), vec3(0.2, 0.8, 0.2), None, BLACK);
-        // draw_sphere(vec3(1., 2., 3.), 0.1, None, GREEN);
-
-        // draw_sphere(vec3(-8., 0., 0.), 1., None, BLUE);
+        draw_grid(20, 1., text_color, GRAY);
+        draw_grid(
+            settings.grid.slices as u32,
+            settings.grid.spacing,
+            text_color,
+            GRAY,
+        );
 
         // Test
         for pos in &vec {
@@ -70,21 +75,19 @@ async fn main() {
 
         // Back to screen space, render some text
         set_default_camera();
-        draw_text("3D scanner", 10.0, 20.0, 30.0, BLACK);
-        draw_text(
-            format!("x: {}, y: {}, z: {}", x, y, z).as_str(),
-            10.0,
-            40.0,
-            20.0,
-            BLACK,
-        );
-        draw_text(
-            format!("pitch: {}, yaw: {}", pitch, yaw).as_str(),
-            10.0,
-            60.0,
-            20.0,
-            BLACK,
-        );
+        draw_text("3D scanner", 10.0, 20.0, 30.0, text_color);
+
+        if root_ui().button(vec2(screen_width() - 80., 20.), "Settings") {
+            settings.toggle_display();
+        }
+
+        if settings.debug {
+            show_debug_info((x, y, z), (pitch, yaw), &settings, text_color);
+        }
+
+        if settings.display {
+            show_settings(&mut settings);
+        }
 
         next_frame().await
     }
