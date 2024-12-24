@@ -1,6 +1,10 @@
+use std::collections::HashMap;
+
 use key_mapping::apply_input;
 use macroquad::{prelude::*, ui::root_ui};
-use ui::{show_debug_info, show_settings, Settings};
+use ui::{
+    default_skin, keymappings_skin, show_debug_info, show_keymapping, show_settings, Settings,
+};
 mod key_mapping;
 mod ui;
 
@@ -41,7 +45,13 @@ async fn main() {
         }
     }
 
-    let mut settings = Settings::builder().build();
+    let mut settings = Settings::builder()
+        .skin(HashMap::from([
+            ("Default".to_string(), default_skin().await),
+            ("Keymapping".to_string(), keymappings_skin().await),
+        ]))
+        .build()
+        .await;
     let mut text_color: Color;
 
     loop {
@@ -89,16 +99,29 @@ async fn main() {
         set_default_camera();
         draw_text("3D scanner", 10.0, 20.0, 30.0, text_color);
 
-        if root_ui().button(vec2(screen_width() - 80., 20.), "Settings") {
-            settings.toggle_display();
+        // Buttons
+        let (_, skin) = settings.skin.get_key_value(&"Default".to_string()).unwrap();
+        root_ui().push_skin(skin);
+        if root_ui().button(vec2(screen_width() - 80., 20.), "Settings  ") {
+            settings.toggle_display_settings();
+        }
+
+        if root_ui().button(vec2(screen_width() - 80., 40.), "Keymapping") {
+            settings.toggle_display_keymapping();
+        }
+
+        root_ui().pop_skin();
+
+        if settings.display_settings {
+            show_settings(&mut settings);
+        }
+
+        if settings.display_keymapping {
+            show_keymapping(&mut settings);
         }
 
         if settings.debug {
             show_debug_info((x, y, z), (ctx.pitch, ctx.yaw), &settings, text_color);
-        }
-
-        if settings.display {
-            show_settings(&mut settings);
         }
 
         next_frame().await

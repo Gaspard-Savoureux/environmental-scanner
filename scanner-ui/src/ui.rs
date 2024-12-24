@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use macroquad::prelude::*;
 use macroquad::ui::{
     hash, root_ui,
@@ -5,15 +7,38 @@ use macroquad::ui::{
     Skin,
 };
 
+use crate::key_mapping::KEY_MAPPINGS;
+
 /// set the default style here
-fn default_skin() -> Skin {
+pub async fn default_skin() -> Skin {
+    // To load font
+    // let font = load_ttf_font("resources/fonts/Roboto/Roboto-Medium.ttf").await.unwrap();
+
+    let label_style = root_ui()
+        .style_builder()
+        // .with_font(&font).unwrap()
+        .text_color(BLACK)
+        .font_size(16)
+        .build();
+
     let checkbox_style = root_ui()
         .style_builder()
         .color_hovered(GRAY)
         .color_selected(GRAY)
         .build();
+
+    let button_style = root_ui()
+        .style_builder()
+        .background_margin(RectOffset::new(2., 2., 2., 2.))
+        .font_size(16)
+        .text_color(LIGHTGRAY)
+        .color(DARKGRAY)
+        .build();
+
     Skin {
+        label_style,
         checkbox_style,
+        button_style,
         ..root_ui().default_skin()
     }
 }
@@ -24,10 +49,11 @@ pub struct Grid {
 }
 
 pub struct Settings {
-    pub display: bool,
+    pub display_settings: bool,
+    pub display_keymapping: bool,
     pub dark_theme: bool,
     pub debug: bool,
-    pub skin: Skin,
+    pub skin: HashMap<String, Skin>,
     pub position: Vec2,
     pub window_size: Vec2,
     pub grid: Grid,
@@ -36,7 +62,8 @@ pub struct Settings {
 impl Settings {
     pub fn builder() -> SettingsBuilder {
         SettingsBuilder {
-            display: None,
+            display_settings: None,
+            display_keymapping: None,
             dark_theme: None,
             debug: None,
             skin: None,
@@ -51,8 +78,12 @@ impl Settings {
         self.position = self.position / 2. - self.window_size / 2.;
     }
 
-    pub fn toggle_display(&mut self) {
-        self.display = !self.display;
+    pub fn toggle_display_settings(&mut self) {
+        self.display_settings = !self.display_settings;
+    }
+
+    pub fn toggle_display_keymapping(&mut self) {
+        self.display_keymapping = !self.display_keymapping;
     }
 
     pub fn switch_theme(&mut self) {
@@ -73,10 +104,11 @@ impl Settings {
 }
 
 pub struct SettingsBuilder {
-    display: Option<bool>,
+    display_settings: Option<bool>,
+    display_keymapping: Option<bool>,
     dark_theme: Option<bool>,
     debug: Option<bool>,
-    skin: Option<Skin>,
+    skin: Option<HashMap<String, Skin>>,
     position: Option<Vec2>,
     window_size: Option<Vec2>,
     grid: Option<Grid>,
@@ -84,8 +116,13 @@ pub struct SettingsBuilder {
 
 #[allow(dead_code)]
 impl SettingsBuilder {
-    pub fn display(mut self, display: bool) -> Self {
-        self.display = Some(display);
+    pub fn display_settings(mut self, display: bool) -> Self {
+        self.display_settings = Some(display);
+        self
+    }
+
+    pub fn display_keymapping(mut self, display: bool) -> Self {
+        self.display_keymapping = Some(display);
         self
     }
 
@@ -99,7 +136,7 @@ impl SettingsBuilder {
         self
     }
 
-    pub fn skin(mut self, skin: Skin) -> Self {
+    pub fn skin(mut self, skin: HashMap<String, Skin>) -> Self {
         self.skin = Some(skin);
         self
     }
@@ -119,7 +156,7 @@ impl SettingsBuilder {
         self
     }
 
-    pub fn build(self) -> Settings {
+    pub async fn build(self) -> Settings {
         let window_size = self.window_size.unwrap_or(vec2(320., 400.));
         let position = self.position.unwrap_or(vec2(
             screen_width() / 2. - window_size.x,
@@ -127,10 +164,14 @@ impl SettingsBuilder {
         ));
 
         Settings {
-            display: self.display.unwrap_or(false),
+            display_settings: self.display_settings.unwrap_or(false),
+            display_keymapping: self.display_keymapping.unwrap_or(false),
             dark_theme: self.dark_theme.unwrap_or(false),
             debug: self.debug.unwrap_or(false),
-            skin: self.skin.unwrap_or(default_skin()),
+            skin: self.skin.unwrap_or(HashMap::from([(
+                "Default".to_string(),
+                default_skin().await,
+            )])),
             position,
             window_size,
             grid: self.grid.unwrap_or(Grid {
@@ -142,7 +183,8 @@ impl SettingsBuilder {
 }
 
 pub fn show_settings(settings: &mut Settings) {
-    root_ui().push_skin(&settings.skin);
+    let (_, skin) = settings.skin.get_key_value(&"Default".to_string()).unwrap();
+    root_ui().push_skin(skin);
     settings.refresh_position();
 
     widgets::Window::new(hash!(), settings.position, settings.window_size)
@@ -161,7 +203,7 @@ pub fn show_settings(settings: &mut Settings) {
                 vec2(settings.window_size.x - 60., settings.window_size.y - 60.),
                 "Close",
             ) {
-                settings.toggle_display();
+                settings.toggle_display_settings();
                 ui.close_current_window();
             }
         });
@@ -207,10 +249,92 @@ pub fn show_debug_info(
 
     // Displaying the settings
     draw_text(
-        format!("Displaying settings: {}", settings.display).as_str(),
+        format!("Displaying settings: {}", settings.display_settings).as_str(),
         10.0,
         100.0,
         20.0,
         text_color,
     );
+
+    // Displaying the keymapping
+    draw_text(
+        format!("Displaying keymapping: {}", settings.display_keymapping).as_str(),
+        10.0,
+        120.0,
+        20.0,
+        text_color,
+    );
+}
+
+pub async fn keymappings_skin() -> Skin {
+    // let font = load_ttf_font("resources/fonts/Roboto/Roboto-Regular.ttf").await.unwrap();
+
+    let label_style = root_ui()
+        .style_builder()
+        // .with_font(&font).unwrap()
+        .text_color(BLACK)
+        .font_size(16)
+        .text_color_hovered(RED)
+        .color_hovered(RED)
+        .build();
+
+    let checkbox_style = root_ui()
+        .style_builder()
+        .color_hovered(GRAY)
+        .color_selected(GRAY)
+        .build();
+
+    let group_style = root_ui()
+        .style_builder()
+        .color_hovered(RED)
+        .text_color_hovered(RED)
+        .color_hovered(RED)
+        .build();
+
+    Skin {
+        label_style,
+        checkbox_style,
+        group_style,
+        ..root_ui().default_skin()
+    }
+}
+
+pub fn show_keymapping(settings: &mut Settings) {
+    settings.refresh_position();
+    let (_, skin) = settings
+        .skin
+        .get_key_value(&"Keymapping".to_string())
+        .unwrap();
+
+    let mut close_clicked = false;
+
+    widgets::Window::new(hash!(), settings.position, settings.window_size)
+        .label("Keymappings")
+        .titlebar(true)
+        .ui(&mut *root_ui(), |ui| {
+            ui.push_skin(skin);
+            for (key, description) in KEY_MAPPINGS {
+                ui.separator();
+                ui.group(hash!(key, 1), vec2(280., 60.), |inner_ui| {
+                    inner_ui.label(None, key);
+                    inner_ui.separator();
+                    inner_ui.same_line(20.);
+                    inner_ui.label(None, description);
+                });
+                ui.separator();
+            }
+
+            // Exit button
+            if ui.button(None, "Close") {
+                close_clicked = true;
+                ui.close_current_window();
+            }
+
+            ui.separator();
+            ui.pop_skin();
+        });
+
+    if close_clicked {
+        settings.toggle_display_keymapping();
+    }
 }
