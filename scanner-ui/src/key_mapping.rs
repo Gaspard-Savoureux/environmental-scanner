@@ -1,18 +1,11 @@
 use macroquad::prelude::*;
 
-use crate::{ui::Settings, Context};
+use crate::{ui::Settings, Context, MOVE_SPEED, PITCH, RADIUS, YAW};
 
 /// Apply the input given by the user.
 ///
 /// Take the current pitch and yaw then returns the updated values.
-pub fn apply_input(
-    ctx: &mut Context,
-    // moving_step: &f32,
-    // pitch: &mut f32,
-    // yaw: &mut f32,
-    // radius: &mut f32,
-    settings: &mut Settings,
-) {
+pub fn apply_input(ctx: &mut Context, settings: &mut Settings) {
     #[cfg_attr(any(), rustfmt::skip)]
     { // Camera control //
     // Arrow mouvements control
@@ -27,13 +20,20 @@ pub fn apply_input(
     let mouse_delta = mouse_position - ctx.last_mouse_position;
     ctx.last_mouse_position = mouse_position;
 
-    if is_mouse_button_down(MouseButton::Left) { ctx.yaw   += mouse_delta.x * delta * 0.1; }
-    if is_mouse_button_down(MouseButton::Left) { ctx.pitch -= mouse_delta.y * delta * 0.1; }
+    if is_mouse_button_down(MouseButton::Left) { ctx.yaw   += mouse_delta.x * delta * MOVE_SPEED; }
+    if is_mouse_button_down(MouseButton::Left) { ctx.pitch -= mouse_delta.y * delta * MOVE_SPEED; }
     
     // mouse_wheel zoom
     let (_, mouse_wheel_y) = mouse_wheel();
     if      mouse_wheel_y > 0. { ctx.radius += 1.; } 
     else if mouse_wheel_y < 0. { ctx.radius -= 1.; }
+
+    // reset camera
+    if is_key_pressed(KeyCode::R) {
+        ctx.radius = RADIUS;
+        ctx.yaw = YAW;
+        ctx.pitch = PITCH;
+    }
     }
 
     #[cfg_attr(any(), rustfmt::skip)]

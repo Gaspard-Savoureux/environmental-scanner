@@ -4,7 +4,12 @@ use ui::{show_debug_info, show_settings, Settings};
 mod key_mapping;
 mod ui;
 
+// Default context args
 const MOVE_SPEED: f32 = 0.1;
+const RADIUS: f32 = 40.;
+const YAW: f32 = 0.;
+const PITCH: f32 = -10.; // set to -10 to rise camera on start
+
 const TARGET: Vec3 = vec3(0., 0., 0.);
 const DOT_SIZE: f32 = 0.1;
 
@@ -20,9 +25,9 @@ struct Context {
 async fn main() {
     let mut ctx: Context = Context {
         move_speed: MOVE_SPEED,
-        radius: 40.,
-        yaw: 0.,
-        pitch: -10., // set to -10 to rise camera on start
+        radius: RADIUS,
+        yaw: YAW,
+        pitch: PITCH,
         last_mouse_position: mouse_position().into(),
     };
 
@@ -47,7 +52,6 @@ async fn main() {
             clear_background(LIGHTGRAY);
             text_color = BLACK;
         }
-        // clear_background(LIGHTGRAY);
 
         let x = TARGET.x + ctx.radius * ctx.yaw.cos() * ctx.pitch.cos();
         let y = TARGET.y + ctx.radius * ctx.pitch.sin();
